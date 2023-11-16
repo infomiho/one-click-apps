@@ -1,70 +1,67 @@
 captainVersion: 4
 
 services:
-  $$cap_appname-mail:
-    image: bytemark/smtp
-    restart: always
-    environment:
-      RELAY_HOST: $$cap_RELAY_HOST
-      RELAY_PORT: $$cap_RELAY_PORT
-      RELAY_USERNAME: $$cap_RELAY_USERNAME
-      RELAY_PASSWORD: $$cap_RELAY_PASSWORD
-    caproverExtra:
-      notExposeAsWebApp: 'true'
+    $$cap_appname-mail:
+        image: bytemark/smtp
+        environment:
+            RELAY_HOST: $$cap_RELAY_HOST
+            RELAY_PORT: $$cap_RELAY_PORT
+            RELAY_USERNAME: $$cap_RELAY_USERNAME
+            RELAY_PASSWORD: $$cap_RELAY_PASSWORD
+        caproverExtra:
+            notExposeAsWebApp: 'true'
 
-  $$cap_appname-postgres:
-    image: postgres:14-alpine
-    restart: always
-    volumes:
-      - $$cap_appname-postgres-data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=plausible
-      - POSTGRES_PASSWORD=$$cap_POSTGRES_PASSWORD
-    caproverExtra:
-      notExposeAsWebApp: 'true'
+    $$cap_appname-postgres:
+        image: postgres:14-alpine
+        volumes:
+            - $$cap_appname-postgres-data:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_USER=plausible
+            - POSTGRES_PASSWORD=$$cap_POSTGRES_PASSWORD
+        caproverExtra:
+            notExposeAsWebApp: 'true'
 
-  $$cap_appname-clickhouse:
-    image: clickhouse/clickhouse-server:$$cap_CLICKHOUSE_VERSION
-    restart: always
-    volumes:
-      - $$cap_appname-clickhouse-data:/var/lib/clickhouse
-      # TODO: see how to mount config files
-      # - ./clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
-      # - ./clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-    caproverExtra:
-      notExposeAsWebApp: 'true'
+    $$cap_appname-clickhouse:
+        image: clickhouse/clickhouse-server:$$cap_CLICKHOUSE_VERSION
+        volumes:
+            - $$cap_appname-clickhouse-data:/var/lib/clickhouse
+            # TODO: see how to mount config files
+            # - ./clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
+            # - ./clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
+        ulimits:
+            nofile:
+                soft: 262144
+                hard: 262144
+        caproverExtra:
+            notExposeAsWebApp: 'true'
 
-  $$cap_appname:
-    image: plausible/analytics:$$cap_PLAUSIBLE_VERSION
-    restart: always
-    command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
-    depends_on:
-      - $$cap_appname-postgres
-      - $$cap_appname-clickhouse
-      - $$cap_appname-mail
-    ports:
-      - 8000:8000
-    environment:
-      BASE_URL: http://$$cap_appname.$$cap_root_domain
-      SECRET_KEY_BASE: $$cap_gen_random_hex(64)
-      DATABASE_URL: postgres://plausible:$$cap_POSTGRES_PASSWORD@srv-captain--$$cap_appname-postgres:5432/plausible
-      CLICKHOUSE_DATABASE_URL: http://srv-captain--$$cap_appname-clickhouse:8123/plausible
-      DISABLE_REGISTRATION: 'true'
-      MAILER_EMAIL: $$cap_RELAY_USERNAME
-      SMTP_HOST_ADDR: srv-captain--$$cap_appname-mail
-      SMTP_HOST_PORT: '25'
-    caproverExtra:
-      containerHttpPort: '8000'
+    $$cap_appname:
+        dockerfileLines:
+          - FROM plausible/analytics:$$cap_PLAUSIBLE_VERSION
+          - CMD ["sh", "-c", "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"]
+        depends_on:
+            - $$cap_appname-postgres
+            - $$cap_appname-clickhouse
+            - $$cap_appname-mail
+        ports:
+            - 8000:8000
+        environment:
+            BASE_URL: http://$$cap_appname.$$cap_root_domain
+            SECRET_KEY_BASE: $$cap_gen_random_hex(64)
+            DATABASE_URL: postgres://plausible:$$cap_POSTGRES_PASSWORD@srv-captain--$$cap_appname-postgres:5432/plausible
+            CLICKHOUSE_DATABASE_URL: http://srv-captain--$$cap_appname-clickhouse:8123/plausible
+            DISABLE_REGISTRATION: 'true'
+            MAILER_EMAIL: $$cap_RELAY_USERNAME
+            SMTP_HOST_ADDR: srv-captain--$$cap_appname-mail
+            SMTP_HOST_PORT: '25'
+        caproverExtra:
+            containerHttpPort: '8000'
 
 volumes:
-  db-data:
-    driver: local
-  event-data:
-    driver: local
+    db-data:
+        driver: local
+    event-data:
+        driver: local
 
 caproverOneClickApp:
     variables:
