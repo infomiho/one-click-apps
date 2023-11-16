@@ -12,7 +12,7 @@ services:
             notExposeAsWebApp: 'true'
 
     $$cap_appname-postgres:
-        image: postgres:14-alpine
+        image: postgres:$$cap_POSTGRES_VERSION
         volumes:
             - $$cap_appname-postgres-data:/var/lib/postgresql/data
         environment:
@@ -33,12 +33,15 @@ services:
             notExposeAsWebApp: 'true'
 
     $$cap_appname:
+        caproverExtra:
+        containerHttpPort: '8000'
+        dockerfileLines:
+            - FROM plausible/analytics:$$cap_PLAUSIBLE_VERSION
+            - CMD ["sh", "-c", "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"]
         depends_on:
             - $$cap_appname-postgres
             - $$cap_appname-clickhouse
             - $$cap_appname-mail
-        ports:
-            - 8000:8000
         environment:
             BASE_URL: http://$$cap_appname.$$cap_root_domain
             SECRET_KEY_BASE: $$cap_gen_random_hex(64)
@@ -48,17 +51,6 @@ services:
             MAILER_EMAIL: $$cap_RELAY_USERNAME
             SMTP_HOST_ADDR: srv-captain--$$cap_appname-mail
             SMTP_HOST_PORT: '25'
-        caproverExtra:
-            containerHttpPort: '8000'
-            dockerfileLines:
-                - FROM plausible/analytics:$$cap_PLAUSIBLE_VERSION
-                - CMD ["sh", "-c", "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"]
-
-volumes:
-    db-data:
-        driver: local
-    event-data:
-        driver: local
 
 caproverOneClickApp:
     variables:
@@ -97,7 +89,7 @@ caproverOneClickApp:
         - description: Postgres version (from https://hub.docker.com/_/postgres?tab=tags, supported versions are 12, 13, and 14)
           id: $$cap_POSTGRES_VERSION
           label: POSTGRES_VERSION
-          defaultValue: postgres:14-alpine
+          defaultValue: 14-alpine
           validRegex: /^([^\s^\/])+$/
     instructions:
         start: >-
