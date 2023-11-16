@@ -25,23 +25,19 @@ services:
         image: clickhouse/clickhouse-server:$$cap_CLICKHOUSE_VERSION
         volumes:
             - $$cap_appname-clickhouse-data:/var/lib/clickhouse
-        ulimits:
-            nofile:
-                soft: 262144
-                hard: 262144
         caproverExtra:
             notExposeAsWebApp: 'true'
 
     $$cap_appname:
-        caproverExtra:
-        containerHttpPort: '8000'
-        dockerfileLines:
-            - FROM plausible/analytics:$$cap_PLAUSIBLE_VERSION
-            - CMD ["sh", "-c", "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"]
         depends_on:
             - $$cap_appname-postgres
             - $$cap_appname-clickhouse
             - $$cap_appname-mail
+        caproverExtra:
+            containerHttpPort: '8000'
+            dockerfileLines:
+                - FROM plausible/analytics:$$cap_PLAUSIBLE_VERSION
+                - CMD ["sh", "-c", "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"]
         environment:
             BASE_URL: http://$$cap_appname.$$cap_root_domain
             SECRET_KEY_BASE: $$cap_gen_random_hex(64)
