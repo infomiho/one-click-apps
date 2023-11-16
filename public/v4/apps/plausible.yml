@@ -36,9 +36,6 @@ services:
             notExposeAsWebApp: 'true'
 
     $$cap_appname:
-        dockerfileLines:
-          - FROM plausible/analytics:$$cap_PLAUSIBLE_VERSION
-          - CMD ["sh", "-c", "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"]
         depends_on:
             - $$cap_appname-postgres
             - $$cap_appname-clickhouse
@@ -56,6 +53,9 @@ services:
             SMTP_HOST_PORT: '25'
         caproverExtra:
             containerHttpPort: '8000'
+            dockerfileLines:
+              - FROM plausible/analytics:$$cap_PLAUSIBLE_VERSION
+              - CMD ["sh", "-c", "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"]
 
 volumes:
     db-data:
