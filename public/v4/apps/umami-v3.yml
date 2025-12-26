@@ -1,0 +1,72 @@
+captainVersion: 4
+services:
+    # Umami v3
+    $$cap_appname:
+        image: ghcr.io/umami-software/umami:$$cap_umami_version
+        restart: always
+        environment:
+            DATABASE_URL: postgresql://umami:$$cap_postgres_pass@srv-captain--$$cap_appname-db:5432/umami
+            APP_SECRET: $$cap_app_secret
+        depends_on:
+            - $$cap_appname-db
+        caproverExtra:
+            containerHttpPort: '3000'
+    # PostgreSQL
+    $$cap_appname-db:
+        image: postgres:$$cap_postgres_version
+        volumes:
+            - $$cap_appname-db-data:/var/lib/postgresql
+        restart: always
+        environment:
+            POSTGRES_DB: umami
+            POSTGRES_USER: umami
+            POSTGRES_PASSWORD: $$cap_postgres_pass
+        caproverExtra:
+            notExposeAsWebApp: 'true'
+caproverOneClickApp:
+    variables:
+        - id: $$cap_umami_version
+          label: Umami Version
+          defaultValue: '3.0.3'
+          description: Checkout their Docker page for the valid tags https://hub.docker.com/r/umamisoftware/umami/tags
+          validRegex: /^([^\s^\/])+$/
+        - id: $$cap_postgres_version
+          label: Postgres Version
+          defaultValue: '18-alpine'
+          description: Checkout their page for the valid tags https://hub.docker.com/_/postgres
+          validRegex: /^([^\s^\/])+$/
+        - id: $$cap_postgres_pass
+          label: PostgreSQL Database password
+          description: 'Password for PostgreSQL database'
+          defaultValue: $$cap_gen_random_hex(16)
+          validRegex: /^([^\s^\/])+$/
+        - id: $$cap_app_secret
+          label: Application Secret
+          description: 'Random string used to encrypt data. Generate a secure random string.'
+          defaultValue: $$cap_gen_random_hex(32)
+          validRegex: /^([^\s^\/])+$/
+    instructions:
+        start: >-
+            Umami is a simple, fast, privacy-focused alternative to Google Analytics.
+
+
+            This app will install Umami v3 with a PostgreSQL 18 database with persistent data.
+
+
+            For more details about Umami, see: https://umami.is
+
+
+            Enter your configuration parameters and click on next. It will take about a minute for the process to finish.
+        end: >-
+            Aaaand you're done! 🔥
+            Your Umami v3 instance is available at http://$$cap_appname.$$cap_root_domain
+
+
+            IMPORTANT: The default login is username 'admin' and password 'umami'. Please login and change your password immediately!
+
+
+            Before using Umami in production, make sure to enable HTTPS in CapRover.
+    displayName: Umami v3
+    isOfficial: true
+    description: Umami is a simple, fast, privacy-focused alternative to Google Analytics. This is the v3 release with PostgreSQL database.
+    documentation: Official docs are [here](https://umami.is/docs)
